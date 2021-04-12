@@ -45,7 +45,7 @@ router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-        return res.redirect('/login?errors=All fields are mandatory!');
+        return res.redirect('/auth/login?errors=All fields are mandatory!');
     }
 
     var user = await User.findOne({ username });
@@ -60,18 +60,17 @@ router.post('/login', async (req, res) => {
                 res.cookie("Authorization", `Bearer ${newTokens.accessToken}`, config.cookie_options);
                 res.cookie("refresh-token", newTokens.refreshToken, config.cookie_options);
 
-
-                return res.redirect(req.query.redirect || "/private/member/dashboard");
+                return res.redirect((req.query.redirect == undefined) ? req.query.redirect : "/private/member/dashboard");
             } else {
-                return res.redirect('/login?errors=Invalid Credentials!');
+                return res.redirect('/auth/login?errors=Invalid Credentials!');
             }
         } catch (e) {
             console.error(e);
-            return res.redirect('/login?errors=Please try again!');
+            return res.redirect('/auth/login?errors=Please try again!');
         }
     }
 
-    return res.redirect('/login?errors=Invalid Credentials!');
+    return res.redirect('/auth/login?errors=Invalid Credentials!');
 
 });
 
@@ -79,14 +78,14 @@ router.post('/register', async (req, res) => {
     const { username, password, name } = req.body;
 
     if (!username || !password || !name) {
-        return res.redirect('/register?errors=All fields are mandatory!');
+        return res.redirect('/auth/register?errors=All fields are mandatory!');
     }
 
     let user = await User.findOne({ username });
 
     if (user) {
         // console.log(user);
-        return res.redirect('/register?errors=Username already taken;');
+        return res.redirect('/auth/register?errors=Username already taken;');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -109,7 +108,7 @@ async function checkLoggedIn(req, res) {
     try {
         let accessToken = req.cookies["Authorization"].split('Bearer ')[1];
         let refreshToken = req.cookies["refresh-token"];
-        console.log({ accessToken, refreshToken });
+        // console.log({ accessToken, refreshToken });
         if (accessToken && refreshToken) {
             const decodedAccessToken = await jwt.verifyJWT(accessToken, process.env.jwt_accessKey);
             console.log({ decodedAccessToken });
