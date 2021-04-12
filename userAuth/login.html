@@ -15,7 +15,9 @@
 
     <script src="/public/main.js"></script>
   </head>
-  <body>
+  <body
+    onload="document.forms[0].action+='?redirect='+document.URL.split('?redirect=')[1]"
+  >
     <form
       action="./login"
       method="post"

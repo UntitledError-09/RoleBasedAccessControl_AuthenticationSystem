@@ -1,17 +1,20 @@
-module.exports = (roles) => {
+module.exports = (acceptedRoles) => {               // acceptedRoles is an array containing all roles that are to be allowed
 
     return async (req, res, next) => {
 
-        let flag = 0;
-        await roles.forEach(role => {
-            if (role === req.user.user_role) {
-                flag = 1;
+        let hasMatched = false;
+
+        await acceptedRoles.forEach(role => {
+            if (role === req.user.user_role) {      // Checking each allowed role with user role
+                flag = true;
                 next();
             }
         });
 
-        if (flag === 0) {
-            return res.status(403).json({ msg: "Access Denied! Go back and login with higher privileges!" });
+        if (hasMatched === false) {
+            if (!res.headersSent) {             // Checking if headers have been sent
+                return res.status(403).json({ msg: "Access Denied! Go back and login with higher privileges!" });
+            }
         }
     }
 }
