@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 async function generateJWT(user) {
     try {
-        const accessToken = jwt.sign({ user_id: user.id, user_role: user.role, user_name: user.name }, process.env.jwt_accessKey, { expiresIn: "10m" });
+        const accessToken = jwt.sign({ user_id: user.id, user_role: user.role, user_name: user.name }, process.env.jwt_accessKey, { expiresIn: "5m" });
         const refreshToken = jwt.sign({ user_id: user.id }, process.env.jwt_refreshKey, { expiresIn: "10d" });
 
         let userFromDB = await User.findById(user.id);

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('./jwtPack');
+const config = require('../config/config');
 
 module.exports = () => {
     return async (req, res, next) => {
@@ -8,11 +9,11 @@ module.exports = () => {
             let refreshToken = req.cookies["refresh-token"];
             // console.log(accessToken, refreshToken);
             if (accessToken && refreshToken) {
-                const decodedAccessToken = await jwt.verifyJWT(accessToken, process.env.jwt_accessKey);
+                let decodedAccessToken = await jwt.verifyJWT(accessToken, process.env.jwt_accessKey);
                 // console.log({ decodedAccessToken });
                 if (decodedAccessToken) {
                     req.user = decodedAccessToken;          // Stores decoded access token in req for all other function to use the same info
-                    next();
+                    return next();
                 } else {
                     // access token has expired
 
@@ -21,7 +22,7 @@ module.exports = () => {
 
                     if (decodedRefreshToken) {
                         // refresh token is valid
-                        var user = User.findById(decodedRefreshToken.user_id);
+                        var user = await User.findById(decodedRefreshToken.user_id);
 
                         if (user) {
 
@@ -29,14 +30,14 @@ module.exports = () => {
 
                                 const newTokens = await jwt.generateJWT(user);
 
-                                user.refreshToken = newTokens.refreshToken;
-                                await user.save();
-
                                 res.cookie("Authorization", `Bearer ${newTokens.accessToken}`, config.cookie_options);
                                 res.cookie("refresh-token", newTokens.refreshToken, config.cookie_options);
 
+                                decodedAccessToken = await jwt.verifyJWT(newTokens.accessToken, process.env.jwt_accessKey);
+                                // console.log({ decodedAccessToken });
+                                req.user = decodedAccessToken;          // Stores *new* decoded access token in req for all other function to use the new info
 
-                                next();
+                                return next();
                             }
                         }
                     }
@@ -48,7 +49,7 @@ module.exports = () => {
             }
 
         } catch (e) {
-            // console.error(e);
+            console.error(e);
             return res.redirect("/auth/login?redirect=" + req.originalUrl);
         }
     }

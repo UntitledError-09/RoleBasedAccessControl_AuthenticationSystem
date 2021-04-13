@@ -13,7 +13,7 @@ router.get('/logout', async (req, res) => {
 
     await User.findByIdAndUpdate(req.user_id, { refreshToken: null });
 
-    if (req.query.redirect) {
+    if (req.query.redirect != undefined) {
         return res.redirect('/auth/login?redirect=' + req.query.redirect);
     } else {
         return res.redirect('/auth/login');
@@ -34,7 +34,7 @@ router.get('/register', async (req, res) => {
     const response = await checkLoggedIn(req, res);
 
     if (response) {
-        return response;
+        return res.redirect(response);
     }
 
     return res.sendFile(path.join(__dirname, 'register.html'));
@@ -60,7 +60,7 @@ router.post('/login', async (req, res) => {
                 res.cookie("Authorization", `Bearer ${newTokens.accessToken}`, config.cookie_options);
                 res.cookie("refresh-token", newTokens.refreshToken, config.cookie_options);
 
-                return res.redirect((req.query.redirect == undefined) ? req.query.redirect : "/private/member/dashboard");
+                return res.redirect((req.query.redirect != undefined) ? req.query.redirect : "/private/member/dashboard");
             } else {
                 return res.redirect('/auth/login?errors=Invalid Credentials!');
             }
@@ -110,32 +110,32 @@ async function checkLoggedIn(req, res) {
         let refreshToken = req.cookies["refresh-token"];
         // console.log({ accessToken, refreshToken });
         if (accessToken && refreshToken) {
-            const decodedAccessToken = await jwt.verifyJWT(accessToken, process.env.jwt_accessKey);
-            console.log({ decodedAccessToken });
+            let decodedAccessToken = await jwt.verifyJWT(accessToken, process.env.jwt_accessKey);
+            // console.log({ decodedAccessToken });
             if (decodedAccessToken) {
                 req.user = decodedAccessToken;
-                return req.query.redirect || "/private/member/dashboard";
+                return (req.query.redirect != undefined) ? req.query.redirect : "/private/member/dashboard";
             } else {
                 const decodedRefreshToken = await jwt.verifyJWT(refreshToken, process.env.jwt_refreshKey);
-                console.log({ decodedRefreshToken });
+                // console.log({ decodedRefreshToken });
 
                 if (decodedRefreshToken) {
-                    var user = User.findById(decodedRefreshToken.user_id);
-
+                    var user = await User.findById(decodedRefreshToken.user_id);
+                    // console.log(user)
                     if (user) {
-
+                        // console.log({ dbtoken: user.refreshToken, refreshToken })
                         if (user.refreshToken === refreshToken) {
 
                             const newTokens = await jwt.generateJWT(user);
 
-                            user.refreshToken = null;
-                            await user.save();
-
                             res.cookie("Authorization", `Bearer ${newTokens.accessToken}`, config.cookie_options);
                             res.cookie("refresh-token", newTokens.refreshToken, config.cookie_options);
 
+                            decodedAccessToken = await jwt.verifyJWT(accessToken, process.env.jwt_accessKey);
+                            // console.log({ decodedAccessToken });
+                            req.user = decodedAccessToken;
 
-                            return req.query.redirect || "/private/member/dashboard";
+                            return (req.query.redirect != undefined) ? req.query.redirect : "/private/member/dashboard";
                         }
                     }
                 }
