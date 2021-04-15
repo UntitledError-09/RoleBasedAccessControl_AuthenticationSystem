@@ -6,7 +6,7 @@ module.exports = (acceptedRoles) => {               // acceptedRoles is an array
 
         await acceptedRoles.forEach(role => {
             if (role === req.user.user_role) {      // Checking each allowed role with user role
-                flag = true;
+                hasMatched = true;
                 next();
             }
         });
